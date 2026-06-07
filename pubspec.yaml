@@ -1,0 +1,36 @@
+name: pyra
+description: "App de monitoramento de queimadas — FIAP Global Solution (MVP demo)."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Mapa e geolocalização
+  google_maps_flutter: ^2.9.0
+  geolocator: ^13.0.2
+
+  # Estado
+  provider: ^6.1.2
+
+  # Gráficos
+  fl_chart: ^0.69.0
+
+  # Persistência local (regiões e alertas)
+  shared_preferences: ^2.3.3
+
+  # Utilitários
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
