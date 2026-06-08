@@ -11,8 +11,9 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
 
-  # Mapa e geolocalização
-  google_maps_flutter: ^2.9.0
+  # Mapa (OpenStreetMap — sem chave de API) e geolocalização
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
   geolocator: ^13.0.2
 
   # Estado

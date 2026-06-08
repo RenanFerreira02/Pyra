@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../models/foco.dart';
 import '../providers/focos_provider.dart';
@@ -17,27 +17,30 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final Completer<GoogleMapController> _controller = Completer();
+  final MapController _mapController = MapController();
   final LocationService _location = LocationService();
 
   Position? _posicaoAtual;
   String? _erroLocalizacao;
   bool _carregandoLocalizacao = true;
 
-  static const CameraPosition _brasilInicial = CameraPosition(
-    target: LatLng(-14.0, -51.0),
-    zoom: 4.5,
-  );
+  static const LatLng _brasilCentro = LatLng(-14.0, -51.0);
 
   @override
   void initState() {
     super.initState();
-    // Carregamento dos focos é responsabilidade do _AppShell._inicializar.
-    // Aqui só obtemos a localização do dispositivo.
-    _obterLocalizacao();
+    // Obtém localização após o primeiro frame para o MapController já estar registrado.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _obterLocalizacao());
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   Future<void> _obterLocalizacao() async {
+    setState(() => _carregandoLocalizacao = true);
     try {
       final pos = await _location.obterPosicaoAtual();
       if (!mounted) return;
@@ -45,11 +48,7 @@ class _MapScreenState extends State<MapScreen> {
         _posicaoAtual = pos;
         _carregandoLocalizacao = false;
       });
-      final ctrl = await _controller.future;
-      ctrl.animateCamera(CameraUpdate.newLatLngZoom(
-        LatLng(pos.latitude, pos.longitude),
-        7,
-      ));
+      _mapController.move(LatLng(pos.latitude, pos.longitude), 7);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -59,35 +58,33 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Set<Marker> _buildMarkers(List<Foco> focos) {
-    final markers = <Marker>{};
+  List<Marker> _buildMarkers(List<Foco> focos) {
+    final markers = <Marker>[];
 
-    // Marcador do usuário
     if (_posicaoAtual != null) {
       markers.add(Marker(
-        markerId: const MarkerId('usuario'),
-        position: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
-        infoWindow: const InfoWindow(title: 'Sua localização'),
+        point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude),
+        width: 30,
+        height: 30,
+        child: const Icon(Icons.person_pin_circle, color: Colors.blue, size: 30),
       ));
     }
 
-    // Marcadores de focos
     for (final foco in focos) {
-      final hue = foco.frp >= 100
-          ? BitmapDescriptor.hueRed
+      final color = foco.frp >= 100
+          ? Colors.red
           : foco.frp >= 30
-              ? BitmapDescriptor.hueOrange
-              : BitmapDescriptor.hueYellow;
+              ? Colors.orange
+              : Colors.yellow.shade700;
 
       markers.add(Marker(
-        markerId: MarkerId(foco.id),
-        position: LatLng(foco.latitude, foco.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(hue),
-        infoWindow: InfoWindow(
-          title: 'Foco ${foco.intensidade}',
-          snippet:
-              '${foco.estado ?? ''} | FRP: ${foco.frp.toStringAsFixed(0)} MW\n${foco.satelite}',
+        point: LatLng(foco.latitude, foco.longitude),
+        width: 22,
+        height: 22,
+        child: Tooltip(
+          message:
+              'Foco ${foco.intensidade}\n${foco.estado ?? ''} | FRP: ${foco.frp.toStringAsFixed(0)} MW | ${foco.satelite}',
+          child: Icon(Icons.local_fire_department, color: color, size: 22),
         ),
       ));
     }
@@ -95,15 +92,17 @@ class _MapScreenState extends State<MapScreen> {
     return markers;
   }
 
-  Set<Circle> _buildCircles(RegioesProvider regioes) {
-    return regioes.regioes.map((r) => Circle(
-          circleId: CircleId(r.id),
-          center: LatLng(r.latitude, r.longitude),
-          radius: r.raioKm * 1000,
-          fillColor: Colors.blue.withValues(alpha: 0.1),
-          strokeColor: Colors.blue,
-          strokeWidth: 2,
-        )).toSet();
+  List<CircleMarker> _buildCircles(RegioesProvider regioes) {
+    return regioes.regioes
+        .map((r) => CircleMarker(
+              point: LatLng(r.latitude, r.longitude),
+              radius: r.raioKm * 1000,
+              useRadiusInMeter: true,
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderColor: Colors.blue,
+              borderStrokeWidth: 2,
+            ))
+        .toList();
   }
 
   @override
@@ -133,14 +132,20 @@ class _MapScreenState extends State<MapScreen> {
       ),
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: _brasilInicial,
-            onMapCreated: (ctrl) => _controller.complete(ctrl),
-            myLocationEnabled: _posicaoAtual != null,
-            myLocationButtonEnabled: false,
-            markers: _buildMarkers(focosProvider.focos),
-            circles: _buildCircles(regioesProvider),
-            mapType: MapType.hybrid,
+          FlutterMap(
+            mapController: _mapController,
+            options: const MapOptions(
+              initialCenter: _brasilCentro,
+              initialZoom: 4.5,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.pyra',
+              ),
+              CircleLayer(circles: _buildCircles(regioesProvider)),
+              MarkerLayer(markers: _buildMarkers(focosProvider.focos)),
+            ],
           ),
 
           // Legenda de intensidade

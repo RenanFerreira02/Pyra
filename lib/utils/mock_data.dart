@@ -1,7 +1,11 @@
 import '../models/foco.dart';
 import '../models/regiao.dart';
 
-// Focos distribuídos nos últimos 7 dias para o gráfico ficar interessante
+// CAMADA DE DADOS — MVP com dados de exemplo.
+// Todos os focos abaixo são fictícios e servem apenas para demonstração.
+// Para integração real, substitua mockFocos pelo retorno de FirmsService
+// (NASA FIRMS) e/ou InpeService (INPE BDQueimadas) sem alterar providers
+// nem telas — a interface List<Foco> permanece a mesma.
 final List<Foco> mockFocos = [
   // ── Hoje ────────────────────────────────────────────────────────────────
   Foco(id: 'f01', latitude: -9.52,  longitude: -48.21, frp: 145, brightness: 345, dataHora: _diasAtras(0, h: 2),  satelite: 'VIIRS',  estado: 'TO', bioma: 'Cerrado'),

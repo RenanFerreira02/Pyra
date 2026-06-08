@@ -7,9 +7,6 @@
 	<string>O Pyra usa sua localização para mostrar focos de queimada próximos a você.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>O Pyra usa sua localização para alertar sobre focos próximos mesmo em segundo plano.</string>
-	<!-- Google Maps SDK -->
-	<key>GMSApiKey</key>
-	<string>$(GOOGLE_MAPS_API_KEY)</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

@@ -1,6 +1,6 @@
-# Pyra 🔥 — Monitoramento de Queimadas
+# Pyra — Monitoramento de Queimadas
 
-Aplicativo mobile Flutter para monitoramento de focos de queimada em tempo real, desenvolvido como projeto acadêmico para a **FIAP Global Solution**.
+MVP acadêmico desenvolvido para a **FIAP Global Solution 2026** que demonstra o monitoramento de focos de queimada no Brasil usando **dados de exemplo (mockados)**. O app roda sem nenhuma chave de API ou conta externa.
 
 ---
 
@@ -8,171 +8,72 @@ Aplicativo mobile Flutter para monitoramento de focos de queimada em tempo real,
 
 | Tela | O que faz |
 |------|-----------|
-| **Mapa** | Exibe focos de calor como marcadores coloridos (intensidade) e a posição do usuário. Áreas monitoradas são desenhadas como círculos. |
-| **Dashboard** | Gráfico de barras (focos por dia), pizza (por bioma) e ranking de estados. |
-| **Alertas** | Lista de notificações geradas quando um foco entra no raio de uma região monitorada. |
-| **Regiões** | Cadastro, edição e remoção de regiões de interesse com raio configurável. |
+| **Mapa** | Exibe os focos mockados como marcadores coloridos por intensidade (FRP) sobre o mapa OpenStreetMap e mostra a posição do usuário. Regiões monitoradas aparecem como círculos azuis. |
+| **Dashboard** | Gráfico de barras com focos por dia (últimos 7 dias), gráfico de pizza por bioma e ranking dos estados com mais focos. |
+| **Alertas** | Lista de notificações geradas automaticamente quando um foco de exemplo entra no raio de uma região monitorada. |
+| **Regiões** | Cadastro, edição e remoção de regiões de interesse com raio configurável (km). Três regiões de demo (Brasília, Belém, Manaus) são pré-carregadas no primeiro uso. |
 
 ---
 
-## Stack
+## Tecnologias
 
-- **Flutter 3.x** (Dart)
-- **Firebase**: Firestore + Cloud Messaging
-- **Google Maps Flutter**
-- **NASA FIRMS** + **INPE BDQueimadas** (dados de queimadas)
-- **OpenWeatherMap** (clima complementar)
-- **Provider** (gerência de estado)
-- **fl_chart** (gráficos)
-- **flutter_dotenv** (variáveis de ambiente)
-
----
-
-## Pré-requisitos
-
-- Flutter SDK ≥ 3.5
-- Dart SDK ≥ 3.5
-- Conta Google para Google Maps SDK
-- Projeto Firebase (Firestore + FCM habilitados)
-- Chave NASA FIRMS (gratuita em https://firms.modaps.eosdis.nasa.gov/api/)
+- **Flutter 3.x** / Dart
+- **flutter_map** + **latlong2** — mapa via OpenStreetMap (sem chave de API)
+- **geolocator** — localização do dispositivo
+- **provider** — gerência de estado
+- **fl_chart** — gráficos de barras e pizza
+- **shared_preferences** — persistência local de regiões e alertas
+- **intl** — formatação de datas
 
 ---
 
-## Configuração
+## Dados
 
-### 1. Clone e instale dependências
+O app funciona **100% com dados mockados** — nenhuma chave de API ou conta externa é necessária.
 
-```bash
-git clone <repo>
-cd pyra
-flutter pub get
-```
-
-### 2. Variáveis de ambiente
-
-Copie o exemplo e preencha suas chaves:
-
-```bash
-cp .env.example .env
-```
-
-Edite `.env`:
-
-```
-FIRMS_API_KEY=sua_chave_nasa_firms
-OPENWEATHER_API_KEY=sua_chave_openweather
-GOOGLE_MAPS_API_KEY=sua_chave_google_maps
-```
-
-> **Nunca** commite o `.env` com chaves reais. O arquivo já está no `.gitignore`.
-
-### 3. Firebase
-
-1. Crie um projeto no [Firebase Console](https://console.firebase.google.com).
-2. Habilite **Cloud Firestore** e **Cloud Messaging**.
-3. Adicione os apps Android e iOS:
-   - Android: baixe `google-services.json` → `android/app/`
-   - iOS: baixe `GoogleService-Info.plist` → `ios/Runner/`
-4. Siga as instruções do [FlutterFire CLI](https://firebase.flutter.dev/docs/cli):
-   ```bash
-   dart pub global activate flutterfire_cli
-   flutterfire configure
-   ```
-
-### 4. Google Maps SDK
-
-- Ative **Maps SDK for Android** e **Maps SDK for iOS** no Google Cloud Console.
-- Adicione a chave ao `AndroidManifest.xml` (já configurado via `${GOOGLE_MAPS_API_KEY}`).
-- Para iOS, a chave já é injetada via `Info.plist`.
-
-> **Sem as chaves configuradas**, o app funciona com **dados mockados** de focos cobrindo o Brasil.
+Os 27 focos de exemplo distribuídos pelo Brasil estão centralizados em `lib/utils/mock_data.dart`. O arquivo contém um comentário deixando explícito que é a **camada de dados isolada**: para uma integração real com a **NASA FIRMS** ou o **INPE BDQueimadas**, basta substituir a lista `mockFocos` pelo retorno dos serviços `FirmsService` / `InpeService` — providers e telas não precisam mudar.
 
 ---
 
 ## Executar
 
 ```bash
-# Android
-flutter run -d android
-
-# iOS (Mac)
-flutter run -d ios
-
-# Com flavor de release
-flutter build apk --release
-flutter build ipa --release
+git clone <repo>
+cd pyra
+flutter pub get
+flutter run
 ```
+
+Não é necessária nenhuma configuração adicional.
 
 ---
 
-## Estrutura do projeto
+## Estrutura
 
 ```
 lib/
 ├── main.dart                  # Ponto de entrada, providers e navegação
-├── models/
-│   ├── foco.dart              # Foco de calor (satélite)
-│   ├── regiao.dart            # Região monitorada pelo usuário
-│   └── alerta.dart            # Alerta de proximidade
+├── models/                    # Foco, Regiao, Alerta
+├── providers/                 # FocosProvider, RegioesProvider, AlertasProvider
+├── screens/                   # MapScreen, DashboardScreen, AlertsScreen, RegionsScreen
 ├── services/
-│   ├── firms_service.dart     # NASA FIRMS API (+ mock)
-│   ├── inpe_service.dart      # INPE BDQueimadas WFS
-│   ├── weather_service.dart   # OpenWeatherMap
-│   ├── firebase_service.dart  # Firestore + FCM + cache local
-│   └── location_service.dart  # Geolocator
-├── providers/
-│   ├── focos_provider.dart    # Estado dos focos + filtros + estatísticas
-│   ├── regioes_provider.dart  # CRUD de regiões
-│   └── alertas_provider.dart  # Geração e leitura de alertas
-├── screens/
-│   ├── map_screen.dart        # Tela de mapa
-│   ├── dashboard_screen.dart  # Dashboard com gráficos
-│   ├── alerts_screen.dart     # Lista de alertas
-│   └── regions_screen.dart    # Gerenciamento de regiões
-├── widgets/
-│   ├── estado_vazio_widget.dart
-│   ├── stat_card_widget.dart
-│   └── filtro_bottom_sheet.dart
+│   ├── firms_service.dart     # Stub — camada preparada para NASA FIRMS
+│   ├── inpe_service.dart      # Stub — camada preparada para INPE BDQueimadas
+│   ├── location_service.dart  # GPS via geolocator
+│   └── storage_service.dart   # SharedPreferences (regiões e alertas)
+├── widgets/                   # EstadoVazio, StatCard, FiltroBottomSheet
 └── utils/
-    ├── constants.dart         # Endpoints, coleções Firestore, TTL de cache
-    ├── geo_utils.dart         # Haversine (distância geográfica)
-    └── helpers.dart           # Formatação de data/distância
-```
-
----
-
-## Fontes de dados
-
-| Fonte | Tipo | Docs |
-|-------|------|------|
-| NASA FIRMS | REST CSV | https://firms.modaps.eosdis.nasa.gov/api/ |
-| INPE BDQueimadas | WFS GeoJSON | https://queimadas.dgi.inpe.br |
-| OpenWeatherMap | REST JSON | https://openweathermap.org/api |
-
----
-
-## Regras de Firestore (exemplo)
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /regioes/{id} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-    match /focos/{id} {
-      allow read: if true;
-      allow write: if false; // somente Cloud Functions
-    }
-    match /alertas/{id} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
+    ├── mock_data.dart         # Focos e regiões de exemplo (camada de dados isolada)
+    ├── geo_utils.dart         # Distância Haversine
+    ├── helpers.dart           # Formatação de data e distância
+    └── constants.dart         # Constantes do app
 ```
 
 ---
 
 ## Equipe
 
-Projeto desenvolvido para FIAP — Global Solution 2025.
+Projeto desenvolvido para FIAP — Global Solution 2026.
+
+- **Nome** — RM XXXXX
+- **Nome** — RM XXXXX
