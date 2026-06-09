@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 
 /// Abstrai permissões e obtenção de posição do dispositivo.
@@ -21,12 +23,22 @@ class LocationService {
       throw const LocationException('Permissão de localização negada permanentemente.');
     }
 
-    return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 10),
-      ),
-    );
+    // Tenta a última posição conhecida como fallback rápido
+    final lastKnown = await Geolocator.getLastKnownPosition();
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 30),
+        ),
+      );
+    } on TimeoutException {
+      if (lastKnown != null) return lastKnown;
+      throw const LocationException(
+        'Não foi possível obter a localização. Verifique o GPS e tente novamente.',
+      );
+    }
   }
 }
 
